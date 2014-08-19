@@ -8,6 +8,7 @@ import BaseHTTPServer
 import SocketServer
 import httplib
 import urllib
+import socket
 import urlparse
 import rpcrequest
 import rpcresponse
@@ -16,7 +17,7 @@ import rpclib
 from rpcjson import json
 
 
-def http_request(url, json_string, username = None, password = None):
+def http_request(url, json_string, username = None, password = None, timeout = None):
     """
     Fetch data from webserver (POST request)
 
@@ -30,7 +31,7 @@ def http_request(url, json_string, username = None, password = None):
         base64string = base64.encodestring('%s:%s' % (username, password))[:-1]
         request.add_header("Authorization", "Basic %s" % base64string)
 
-    response = urllib2.urlopen(request)
+    response = urllib2.urlopen(request, timeout=timeout)
     response_string = response.read()
     response.close()
 
@@ -54,7 +55,8 @@ class HttpClient(object):
         self,
         url,
         username = None,
-        password = None
+        password = None,
+        timeout = None
     ):
         """
         :param: URL to the JSON-RPC handler on the HTTP-Server.
@@ -62,11 +64,13 @@ class HttpClient(object):
 
         :param username: If *username* is given, BASE authentication will be used.
         :param password: Password for BASE authentication.
+        :param timeout: timeout in seconds for http requests
         """
 
         self.url = url
         self.username = username
         self.password = password
+        self.timeout = timeout or socket.getdefaulttimeout()
 
 
     def call(self, method, *args, **kwargs):
@@ -95,7 +99,8 @@ class HttpClient(object):
             url = self.url,
             json_string = request_json,
             username = self.username,
-            password = self.password
+            password = self.password,
+            timeout = self.timeout
         )
         if not response_json:
             return
